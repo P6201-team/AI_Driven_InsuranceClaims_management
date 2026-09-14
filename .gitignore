@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+*_decision_log.json
+.ipynb_checkpoints/
+.DS_Store	
