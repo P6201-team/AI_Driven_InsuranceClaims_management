@@ -55,7 +55,12 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
                           if n in tools.DESCRIPTORS],
         system_prompt=prompt.build_system_prompt(problem))
 
-    transcript = []      # what the model would see
+    transcript = [
+    {
+        "role": "user",
+        "content": "Process claim case %s." % case_id
+    }
+]     # what the model would see
     evidence = []        # every tool actually called, in order
 
     # TURNS ARE TOOL-CALLING TURNS. The concluding move - where the agent
@@ -121,7 +126,7 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
                 observations.append({"tool": name, "args": args,
                                      "observation": result})
                 if verbose:
-                    print("       %-26s -> %s" % (name, _short(result)))
+                    print("       %-26s args=%r -> %s" % (name, args, _short(result)))
 
             transcript.append({"role": "assistant",
                                "content": move.get("thought", "")})

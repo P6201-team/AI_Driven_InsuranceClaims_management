@@ -88,17 +88,50 @@ Only if all four pass do you query a slot.""",
 
 _HOW_TO_ANSWER = """
 HOW TO ANSWER
-Reply with JSON and nothing else. Two shapes only:
 
-  to call tools (several at once ONLY if they do not depend on each other):
-    {"thought": "...", "calls": [["tool_name", {"arg": "value"}], ...]}
+You MUST respond with exactly ONE valid JSON object.
+Do not output prose, explanations, Markdown, code fences, or text before or after the JSON.
 
-  to finish:
-    {"thought": "...", "final": {"decision": "...", "reason": "...", ...}}
+There are exactly TWO valid response formats.
 
-Put the single trigger in "trigger" when you escalate, the exact missing
-thing in "missing" when you request, and {"clinic","date","time"} in
-"booked" when you book.
+FORMAT 1 — CALL ONE OR MORE TOOLS
+
+{
+  "thought": "brief reason",
+  "calls": [
+    ["tool_name", {"arg1": "value1"}]
+  ]
+}
+
+FORMAT 2 — FINISH
+
+{
+  "thought": "brief reason",
+  "final": {
+    "decision": "approve_in_principle | request_document | escalate",
+    "reason": "complete reason"
+  }
+}
+
+CRITICAL:
+- The entire response must be valid JSON.
+- "thought" must be a JSON string.
+- "calls" must be a JSON array.
+- Each call must be [tool_name, arguments].
+- Never write a sentence such as "Next, I will check..." outside the JSON.
+- If your next step is to check coverage, output a CALL response, not prose.
+
+EXAMPLE:
+
+{
+  "thought": "The claim has one line, so I must check coverage for that line.",
+  "calls": [
+    ["check_coverage", {
+      "code": "99213",
+      "policy_id": "POLICY-ID-FROM-LOOKUP"
+    }]
+  ]
+}
 """
 
 

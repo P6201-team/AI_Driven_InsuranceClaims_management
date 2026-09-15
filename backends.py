@@ -206,10 +206,17 @@ def _parse_move(text):
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        return {"final": {"decision": "escalate",
-                          "reason": "model did not return parseable JSON"},
-                "thought": "unparseable: %s" % text[:200]}
+            print("\n========== RAW MODEL RESPONSE ==========")
+            print(text)
+            print("========================================\n")
 
+            return {
+                "final": {
+                    "decision": "escalate",
+                    "reason": "model did not return parseable JSON"
+                },
+                "thought": "unparseable: %s" % text[:500]
+            }
 
 def _live_call(messages):
     """>>> THE ONLY FUNCTION IN THIS REPOSITORY THAT KNOWS A VENDOR <<<
@@ -227,12 +234,19 @@ def _live_call(messages):
         "model": config.MODEL,
         "messages": messages,
         "temperature": 0,
+        "response_format": {
+            "type": "json_object"
+        }
     }).encode()
+
     req = urllib.request.Request(
         config.BASE_URL.rstrip("/") + "/chat/completions",
         data=body,
-        headers={"Authorization": "Bearer " + config.API_KEY,
-                 "Content-Type": "application/json"})
+        headers={
+            "Authorization": "Bearer " + config.API_KEY,
+            "Content-Type": "application/json"
+        }
+    )
     with urllib.request.urlopen(req, timeout=60) as r:
         payload = json.load(r)
     return payload["choices"][0]["message"]["content"]
