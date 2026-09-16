@@ -6,6 +6,7 @@ PE6201 · A2 scaffold — ENTRY POINT
     python3 run_eval.py REF-5602     run one case, showing every turn
     python3 run_eval.py --all        run every case in the work queue
     python3 run_eval.py --prompt     print what the model is told, and stop
+    python3 run_eval.py --guardrails run the D3(b) scripted checklist
 
 THIS IS WHAT A MARKER RUNS. Clone, `python3 run_eval.py`, numbers come
 back. No key, no network, no arguments. If that does not work on a
@@ -25,12 +26,17 @@ from harness import load_cases, load_key, report, run_set
 
 
 def main(argv):
+    args = [a for a in argv[1:] if not a.startswith("-")]
+    flags = {a for a in argv[1:] if a.startswith("-")}
+
+    if "--guardrails" in flags:
+        from tests.guardrail_runner import run_checklist
+        summary = run_checklist(output_path="guardrail_results.json", verbose=True)
+        return 0 if summary["failed"] == 0 else 1
+
     print()
     print(config.summary())
     print("data: %s" % config.data_root())
-
-    args = [a for a in argv[1:] if not a.startswith("-")]
-    flags = {a for a in argv[1:] if a.startswith("-")}
 
     # ---- show exactly what the model is told, then stop ----------------
     if "--prompt" in flags:
