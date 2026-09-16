@@ -16,6 +16,9 @@ worse than the loop it prevented: it turns a visible cost problem into
 an invisible correctness problem. Every stop below records WHY.
 ====================================================================
 """
+import json
+from datetime import datetime, timezone
+from pathlib import Path
 
 
 class GuardrailStop(Exception):
@@ -33,6 +36,12 @@ class Guardrails:
     instance leaks state and D4 requires every case to start clean."""
 
     def __init__(self, max_turns, max_tokens, autonomy):
+        if max_turns < 1:
+            raise ValueError("max_turns must be at least 1")
+        if max_tokens < 1:
+            raise ValueError("max_tokens must be at least 1")
+        if autonomy not in {"suggest", "confirm", "act"}:
+            raise ValueError("autonomy must be suggest, confirm, or act")
         self.max_turns = max_turns
         self.max_tokens = max_tokens
         self.autonomy = autonomy
@@ -63,13 +72,32 @@ class Guardrails:
         guard deleted: 8 turns, no answer, 1.6x the cost, and NO
         exception raised. It did not crash. It burned money in a circle.
         """
-        signature = (tool, repr(sorted(args.items())))
+        signature = self._action_signature(tool, args)
         if signature in self.seen_actions:
             self._fire("duplicate_action", "%s repeated" % tool)
             raise GuardrailStop("duplicate_action",
                                 "%s called again with identical arguments "
                                 "- the loop is not progressing" % tool)
         self.seen_actions.add(signature)
+
+    @staticmethod
+    def _action_signature(tool, args):
+        """Canonicalise nested JSON arguments before de-duplication.
+
+        The public ``check_duplicate(tool, args)`` API remains unchanged.  A
+        JSON encoding is used instead of ``repr(sorted(...))`` so nested dict
+        key order cannot turn the same action into two different signatures.
+        """
+        try:
+            encoded = json.dumps(
+                args, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+            )
+        except (TypeError, ValueError) as exc:
+            raise GuardrailStop(
+                "invalid_action_arguments",
+                "%s received non-JSON-compatible arguments" % tool,
+            ) from exc
+        return tool, encoded
 
     # ---- 4 · autonomy gate ------------------------------------------
     def gate(self, action_name, payload, approve=None):
@@ -94,6 +122,45 @@ class Guardrails:
         self._fire("gate_%s" % ("passed" if ok else "held"),
                    "%s (autonomy=confirm)" % action_name)
         return ok
+
+    def record_gated_action(self, action_name, payload, evidence, result,
+                            case_id, log_path):
+        """Append the simulated irreversible action to a structured JSONL log.
+
+        This is deliberately separate from the business tool: the tool keeps
+        its existing signature, while the guardrail layer records the gate and
+        evidence trail that authorised the write.
+        """
+        gate_event = next(
+            (
+                event for event in reversed(self.fired)
+                if event["guardrail"] == "gate_passed"
+                and action_name in event["detail"]
+            ),
+            None,
+        )
+        if gate_event is None:
+            raise GuardrailStop(
+                "gate_not_passed",
+                "%s cannot be logged without a passed autonomy gate" % action_name,
+            )
+
+        record = {
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "case_id": case_id,
+            "action": action_name,
+            "payload": payload,
+            "evidence": list(evidence),
+            "result": result,
+            "autonomy": self.autonomy,
+            "gate": gate_event,
+        }
+        path = Path(log_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, ensure_ascii=False, sort_keys=True))
+            stream.write("\n")
+        return record
 
     # ---- bookkeeping ------------------------------------------------
     def _fire(self, kind, detail):
