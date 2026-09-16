@@ -185,19 +185,20 @@ class LiveBackend:
         self.case_id = case_id
         self.tools = tool_descriptors
         self.system_prompt = system_prompt
+        self._last_usage = (0, 0)
 
     def next_move(self, transcript):
         messages = [{"role": "system", "content": self.system_prompt}]
         for entry in transcript:
             messages.append({"role": entry["role"], "content": entry["content"]})
-        raw = _live_call(messages)
+        raw, usage = _live_call(messages)
+        self._last_usage = usage
         return _parse_move(raw)
 
-    @staticmethod
-    def token_estimate(transcript):
-        # Replace with the usage numbers the API returns. Estimating here
-        # and calling it measured is the mistake D6 punishes.
-        return 0, 0
+    def token_estimate(self, transcript):
+        # These are the provider's measured counts for the response just
+        # received. agent.py checks the ceiling before dispatching tools.
+        return self._last_usage
 
 
 def _parse_move(text):
@@ -249,7 +250,12 @@ def _live_call(messages):
     )
     with urllib.request.urlopen(req, timeout=60) as r:
         payload = json.load(r)
-    return payload["choices"][0]["message"]["content"]
+    usage = payload.get("usage") or {}
+    measured = (
+        int(usage.get("prompt_tokens") or 0),
+        int(usage.get("completion_tokens") or 0),
+    )
+    return payload["choices"][0]["message"]["content"], measured
 
 
 def make_backend(case_id, tool_descriptors=None, system_prompt=""):
