@@ -1,0 +1,80 @@
+[
+  {
+    "member_id": "M-2214",
+    "name": "Tan Wei Ling",
+    "policy_id": "POL-3310",
+    "join_date": "2024-04-01"
+  },
+  {
+    "member_id": "M-3390",
+    "name": "Rajesh Kumar",
+    "policy_id": "POL-4102",
+    "join_date": "2023-01-15"
+  },
+  {
+    "member_id": "M-4471",
+    "name": "Chen Xiaoyu",
+    "policy_id": "POL-5588",
+    "join_date": "2022-04-01"
+  },
+  {
+    "member_id": "M-5502",
+    "name": "Nurul Aisyah",
+    "policy_id": "POL-6001",
+    "join_date": "2026-06-01"
+  },
+  {
+    "member_id": "M-6118",
+    "name": "Lim Jun Hao",
+    "policy_id": "POL-7220",
+    "join_date": "2025-02-01"
+  },
+  {
+    "member_id": "M-7012",
+    "name": "Test Member 7012",
+    "policy_id": "POL-8012",
+    "join_date": "2026-01-01"
+  },
+  {
+    "member_id": "M-7021",
+    "name": "Test Member 7021",
+    "policy_id": "POL-8021",
+    "join_date": "2026-01-01"
+  },
+  {
+    "member_id": "M-7023",
+    "name": "Test Member 7023",
+    "policy_id": "POL-8023",
+    "join_date": "2026-09-01"
+  },
+  {
+    "member_id": "M-7024",
+    "name": "Test Member 7024",
+    "policy_id": "POL-8024",
+    "join_date": "2025-09-17"
+  },
+  {
+    "member_id": "M-7025",
+    "name": "Test Member 7025",
+    "policy_id": "POL-8025",
+    "join_date": "2026-01-01"
+  },
+  {
+    "member_id": "M-7041",
+    "name": "Test Member 7041",
+    "policy_id": "POL-8041",
+    "join_date": "2026-01-01"
+  },
+  {
+    "member_id": "M-7042",
+    "name": "Test Member 7042",
+    "policy_id": "POL-8042",
+    "join_date": "2026-01-01"
+  },
+  {
+    "member_id": "M-7044",
+    "name": "Test Member 7044",
+    "policy_id": "POL-8044",
+    "join_date": "2026-01-01"
+  }
+]
