@@ -32,7 +32,8 @@ from backends import make_backend
 from guardrails import Guardrails, GuardrailStop
 
 
-def run_case(case_id, problem=None, approve=None, verbose=False):
+def run_case(case_id, problem=None, approve=None, verbose=False,
+             request_text=None, decision_log_path=None):
     """Run ONE case from a clean state and return the decision record.
 
     ISOLATION (D4): everything this function needs is created inside it.
@@ -55,12 +56,10 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
                           if n in tools.DESCRIPTORS],
         system_prompt=prompt.build_system_prompt(problem))
 
-    transcript = [
-    {
+    transcript = [{
         "role": "user",
-        "content": "Process claim case %s." % case_id
-    }
-]     # what the model would see
+        "content": request_text or "Process claim case %s." % case_id,
+    }]                    # what the model would see
     evidence = []        # every tool actually called, in order
 
     # TURNS ARE TOOL-CALLING TURNS. The concluding move - where the agent
@@ -77,8 +76,11 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
     # On the scripted backend the gate auto-approves so the run stays
     # deterministic. The RECORD still shows the gate was reached and
     # passed, which is what a marker looks for.
-    if approve is None:
+    if approve is None and backend.name == "scripted":
         approve = lambda action, payload: True
+
+    if decision_log_path is None:
+        decision_log_path = "%s/decision_log.jsonl" % config.HERE
 
     try:
         while True:
@@ -122,6 +124,15 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
                             % (name, config.AUTONOMY))
 
                 result = tools.call(problem, name, args)
+                if name == tools.GATED_ACTION.get(problem):
+                    guards.record_gated_action(
+                        action_name=name,
+                        payload=args,
+                        evidence=evidence,
+                        result=result,
+                        case_id=case_id,
+                        log_path=decision_log_path,
+                    )
                 evidence.append(name)
                 observations.append({"tool": name, "args": args,
                                      "observation": result})
